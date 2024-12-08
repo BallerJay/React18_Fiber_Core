@@ -1,4 +1,4 @@
-import { HostComponent, HostRoot, HostText } from './ReactWorkTags';
+import { HostComponent, HostRoot, HostText, FunctionComponent } from './ReactWorkTags';
 import { insertBefore, appendChild } from 'react-dom-bindings/src/client/ReactDOMHostConfig';
 import { MutationMask, Placement } from './ReactFiberFlags';
 
@@ -113,7 +113,6 @@ function insertOrAppendPlacementNode(node, before, parent) {
   const { tag } = node;
   const isHost = tag === HostComponent || tag === HostText;
   if (isHost) {
-    debugger;
     const { stateNode } = node;
     if (before) {
       insertBefore(parent, stateNode, before);
@@ -140,6 +139,7 @@ function insertOrAppendPlacementNode(node, before, parent) {
  */
 export function commitMutationEffectsOnFiber(finishedWork, root) {
   switch (finishedWork.tag) {
+    case FunctionComponent:
     case HostRoot:
     case HostComponent:
     case HostText: {
