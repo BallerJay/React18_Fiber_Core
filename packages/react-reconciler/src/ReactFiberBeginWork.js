@@ -48,6 +48,7 @@ function updateHostComponent(current, workInProgress) {
   const { type } = workInProgress;
   const nextProps = workInProgress.pendingProps;
   let nextChildren = nextProps.children;
+  // 判断是否是文本节点
   const isDirectTextChild = shouldSetTextContent(type, nextProps);
   if (isDirectTextChild) {
     nextChildren = null;
