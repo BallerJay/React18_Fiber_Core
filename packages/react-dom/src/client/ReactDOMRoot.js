@@ -1,5 +1,5 @@
 import { createContainer, updateContainer } from 'react-reconciler/src/ReactFiberReconciler';
-
+import { listenToAllSupportedEvents } from 'react-dom-bindings/src/events/DOMPluginEventSystem';
 /**
  * ReactDOMRoot构造函数
  *
@@ -39,5 +39,6 @@ ReactDOMRoot.prototype.render = function (children) {
  */
 export function createRoot(container) {
   const root = createContainer(container);
+  listenToAllSupportedEvents(container);
   return new ReactDOMRoot(root);
 }

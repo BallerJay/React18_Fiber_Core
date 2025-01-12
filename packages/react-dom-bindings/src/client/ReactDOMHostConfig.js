@@ -1,5 +1,7 @@
 import { setInitialProperties } from './ReactDOMComponent';
 
+import { precacheFiberNode, updateFiberProps } from './ReactDOMComponentTree';
+
 /**
  * 判断是否需要设置文本内容
  *
@@ -33,8 +35,12 @@ export function createTextInstance(content) {
  *
  * createInstance函数用于创建一个新的DOM元素，元素类型由传入的type参数指定。
  */
-export function createInstance(type) {
+export function createInstance(type, props, internalInstanceHandle) {
   const domElement = document.createElement(type);
+  // #INFO: 将fiber节点与DOM元素关联
+  precacheFiberNode(internalInstanceHandle, domElement);
+  // #INFO: 将fiber节点的props与DOM元素关联
+  updateFiberProps(domElement, props);
   return domElement;
 }
 
