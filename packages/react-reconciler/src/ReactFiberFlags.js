@@ -5,8 +5,8 @@ export const PerformedWork = /*                */ 0b00000000000000000000000001;
 // You can change the rest (and add more).
 export const Placement = /*                    */ 0b00000000000000000000000010; // 标识位：插入
 export const Update = /*                       */ 0b00000000000000000000000100; // 标识位：更新
-export const Deletion = /*                     */ 0b00000000000000000000001000;
-export const ChildDeletion = /*                */ 0b00000000000000000000010000;
+export const Deletion = /*                     */ 0b00000000000000000000001000; // 标识位：删除
+export const ChildDeletion = /*                */ 0b00000000000000000000010000; // 标识位：子节点删除
 export const ContentReset = /*                 */ 0b00000000000000000000100000;
 export const Callback = /*                     */ 0b00000000000000000001000000;
 export const DidCapture = /*                   */ 0b00000000000000000010000000;

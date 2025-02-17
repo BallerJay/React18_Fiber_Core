@@ -1,6 +1,6 @@
-import { createFiberFromElement } from './ReactFiber';
+import { createFiberFromElement, createWorkInProgress } from './ReactFiber';
 import { REACT_ELEMENT_TYPE } from 'shared/ReactSymbols';
-import { Placement } from './ReactFiberFlags';
+import { Placement, ChildDeletion } from './ReactFiberFlags';
 import isArray from 'shared/isArray';
 import { createFiberFromText } from './ReactFiber';
 
@@ -15,14 +15,81 @@ import { createFiberFromText } from './ReactFiber';
  */
 function createChildReconciler(shouldTrackSideEffects) {
   /**
+   * 使用旧的fiber创建新的fiber
+   *
+   * @param {Fiber} fiber - 旧的fiber
+   * @param {object} pendingProps - 新的属性
+   * @return {Fiber} clone - 新的fiber
+   */
+  function useFiber(fiber, pendingProps) {
+    const clone = createWorkInProgress(fiber, pendingProps);
+    clone.index = 0;
+    clone.sibling = null;
+    return clone;
+  }
+
+  /**
+   * 删除子fiber
+   *
+   * @param {Fiber} returnFiber - 新的父Fiber
+   * @param {Fiber} childToDelete - 要删除的子Fiber
+   */
+  function deleteChild(returnFiber, childToDelete) {
+    if (!shouldTrackSideEffects) return;
+    const deletions = returnFiber.deletions;
+    if (deletions === null) {
+      returnFiber.deletions = [childToDelete];
+      returnFiber.flags |= ChildDeletion;
+    } else {
+      deletions.push(childToDelete);
+    }
+  }
+
+  /**
+   * 删除剩余的子fiber
+   *
+   * @param {Fiber} returnFiber - 新的父Fiber
+   * @param {Fiber} currentFirstChild - 老fiber第一个子fiber
+   */
+  function deleteRemainingChildren(returnFiber, currentFirstChild) {
+    if (!shouldTrackSideEffects) return;
+    let childToDelete = currentFirstChild;
+    while (childToDelete !== null) {
+      deleteChild(returnFiber, childToDelete);
+      childToDelete = childToDelete.sibling;
+    }
+    return null;
+  }
+  /**
    * 将新创建的元素转换为fiber
    *
    * @param {Fiber} returnFiber - 新的父Fiber
-   * @param {Fiber} currentFirstFiber - 老fiber第一个子fiber
+   * @param {Fiber} currentFirstChild - 老fiber第一个子fiber
    * @param {object} element - 新的子虚拟DOM元素
    * @return {Fiber} created - 返回新创建的Fiber
    */
   function reconcileSingleElement(returnFiber, currentFirstChild, element) {
+    let oldFiber = currentFirstChild;
+    while (oldFiber !== null) {
+      if (oldFiber.key === element.key) {
+        if (oldFiber.type === element.type) {
+          // #INFO: 如果找到了相同的key和type，则删除剩余的子fiber
+          deleteRemainingChildren(returnFiber, oldFiber.sibling);
+          // #INFO: 复用旧的fiber
+          const existing = useFiber(oldFiber, element.props);
+          existing.return = returnFiber;
+          return existing;
+        } else {
+          // #INFO: 如果找到了相同的key，但是type不同，则删除旧的fiber以及它的兄弟fiber
+          deleteRemainingChildren(returnFiber, oldFiber);
+        }
+      } else {
+        // #INFO: 如果key不同，则删除旧的fiber
+        deleteChild(returnFiber, oldFiber);
+      }
+      oldFiber = oldFiber.sibling;
+    }
+
     const created = createFiberFromElement(element);
     created.return = returnFiber;
     return created;
@@ -119,6 +186,7 @@ function createChildReconciler(shouldTrackSideEffects) {
    * @return {Fiber} resultingFirstChild - 返回的新的子Fiber
    */
   function reconcileChildFibers(returnFiber, currentFirstChild, newChild) {
+    // #INFO:单节点
     if (typeof newChild === 'object' && newChild !== null) {
       switch (newChild.$$typeof) {
         case REACT_ELEMENT_TYPE:
@@ -127,6 +195,7 @@ function createChildReconciler(shouldTrackSideEffects) {
           break;
       }
     }
+    // #INFO:多节点
     if (isArray(newChild)) {
       return reconcileChildrenArray(returnFiber, currentFirstChild, newChild);
     }

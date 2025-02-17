@@ -38,6 +38,8 @@ export function FiberNode(tag, pendingProps, key) {
   this.alternate = null;
   // 当前节点在兄弟节点中的索引位置
   this.index = 0;
+  // 需要删除的子节点
+  this.deletions = null;
 }
 
 /**
