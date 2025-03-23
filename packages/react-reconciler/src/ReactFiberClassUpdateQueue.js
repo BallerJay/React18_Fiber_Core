@@ -1,4 +1,4 @@
-import { markUpdateLaneFromFiberToRoot } from './ReactFiberConCurrentUpdates';
+import { markUpdateLaneFromFiberToRoot } from './ReactFiberConcurrentUpdates';
 import assign from 'shared/assign';
 // 定义状态更新的类型标签
 export const UpdateState = 0;

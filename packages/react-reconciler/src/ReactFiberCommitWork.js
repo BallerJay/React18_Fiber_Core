@@ -1,6 +1,10 @@
 import { HostComponent, HostRoot, HostText, FunctionComponent } from './ReactWorkTags';
-import { insertBefore, appendChild } from 'react-dom-bindings/src/client/ReactDOMHostConfig';
-import { MutationMask, Placement } from './ReactFiberFlags';
+import {
+  insertBefore,
+  appendChild,
+  commitUpdate,
+} from 'react-dom-bindings/src/client/ReactDOMHostConfig';
+import { MutationMask, Placement, Update } from './ReactFiberFlags';
 
 /**
  * 递归遍历所有子节点并在每个fiber上应用mutation副作用
@@ -138,13 +142,32 @@ function insertOrAppendPlacementNode(node, before, parent) {
  * @param {Fiber} root - fiber树的根节点
  */
 export function commitMutationEffectsOnFiber(finishedWork, root) {
+  const flags = finishedWork.flags;
+  const current = finishedWork.alternate;
   switch (finishedWork.tag) {
     case FunctionComponent:
     case HostRoot:
-    case HostComponent:
     case HostText: {
       recursivelyTraverseMutationEffects(root, finishedWork);
       commitReconciliationEffects(finishedWork);
+      break;
+    }
+    case HostComponent: {
+      recursivelyTraverseMutationEffects(root, finishedWork);
+      commitReconciliationEffects(finishedWork);
+      if (flags & Update) {
+        const instance = finishedWork.stateNode;
+        if (instance !== null) {
+          const newProps = finishedWork.memoizedProps;
+          const oldProps = current !== null ? current.memoizedProps : newProps;
+          const type = finishedWork.type;
+          const updatePayload = finishedWork.updateQueue;
+          finishedWork.updateQueue = null;
+          if (updatePayload) {
+            commitUpdate(instance, updatePayload, type, oldProps, newProps, finishedWork);
+          }
+        }
+      }
       break;
     }
   }

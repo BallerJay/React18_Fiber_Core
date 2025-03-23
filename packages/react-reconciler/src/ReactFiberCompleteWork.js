@@ -1,10 +1,11 @@
-import { HostComponent, HostRoot, HostText } from './ReactWorkTags';
-import { NoFlags } from './ReactFiberFlags';
+import { HostComponent, HostRoot, HostText, FunctionComponent } from './ReactWorkTags';
+import { NoFlags, Update } from './ReactFiberFlags';
 import {
   createTextInstance,
   createInstance,
   appendInitialChild,
   finalizeInitialChildren,
+  prepareUpdate,
 } from 'react-dom-bindings/src/client/ReactDOMHostConfig';
 
 /**
@@ -35,6 +36,28 @@ function appendAllChildren(parent, workInProgress) {
 }
 
 /**
+ * 标记更新
+ * @param {Fiber} workInProgress - 当前工作中的Fiber节点
+ */
+function markUpdate(workInProgress) {
+  workInProgress.flags |= Update;
+}
+
+function updateHostComponent(current, workInProgress, type, newProps) {
+  // 获取旧的属性
+  const oldProps = current.memoizedProps;
+  // 获取DOM实例
+  const instance = workInProgress.stateNode;
+  // 准备更新负载，比较新旧属性的差异
+  const updatePayload = prepareUpdate(instance, type, oldProps, newProps);
+  // 将更新负载存储在fiber的updateQueue中
+  workInProgress.updateQueue = updatePayload;
+  // 如果有需要更新的属性，标记此fiber需要进行DOM更新
+  if (updatePayload) {
+    markUpdate(workInProgress);
+  }
+}
+/**
  * 完成一个Fiber节点
  * @param {Fiber} current - 当前旧的Fiber节点
  * @param {Fiber} workInProgress - 新建的Fiber节点
@@ -47,10 +70,19 @@ export function completeWork(current, workInProgress) {
       break;
     case HostComponent:
       const { type } = workInProgress;
-      const instance = createInstance(type, newProps, workInProgress);
-      appendAllChildren(instance, workInProgress);
-      workInProgress.stateNode = instance;
-      finalizeInitialChildren(instance, type, newProps);
+      if (current !== null && workInProgress.stateNode != null) {
+        // 更新
+        updateHostComponent(current, workInProgress, type, newProps);
+      } else {
+        // 创建
+        const instance = createInstance(type, newProps, workInProgress);
+        appendAllChildren(instance, workInProgress);
+        workInProgress.stateNode = instance;
+        finalizeInitialChildren(instance, type, newProps);
+      }
+      bubbleProperties(workInProgress);
+      break;
+    case FunctionComponent:
       bubbleProperties(workInProgress);
       break;
     case HostText:

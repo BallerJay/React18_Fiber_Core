@@ -4,7 +4,7 @@ import { beginWork } from './ReactFiberBeginWork';
 import { completeWork } from './ReactFiberCompleteWork';
 import { NoFlags, MutationMask } from './ReactFiberFlags';
 import { commitMutationEffectsOnFiber } from './ReactFiberCommitWork';
-
+import { finishQueueingConcurrentUpdates } from './ReactFiberConcurrentUpdates';
 let workInProgress = null;
 
 /**
@@ -62,6 +62,7 @@ function renderRootSync(root) {
  */
 function prepareFreshStack(root) {
   workInProgress = createWorkInProgress(root.current, null);
+  finishQueueingConcurrentUpdates();
 }
 
 /**
